@@ -1,0 +1,85 @@
+ <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Offer & Combo - Mr.Premium App</title>
+  <link rel="icon" href="logo.png" type="image/png" />
+  <link rel="shortcut icon" href="logo.png" type="image/png" />
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="assets/css/styles.css" />
+</head>
+<body>
+
+<header>
+  <img src="logo.png" alt="Mr.Premium App Logo" />
+  
+  <nav id="primary-navigation" aria-label="Primary navigation">
+    <a href="index.html">Home</a>
+    <a href="products.html" aria-current="page">Offer & Combo</a>
+    <a href="subscription.html">Subscription</a>
+    <a href="products.html?type=pc">For PC</a>
+    <a href="products.html?type=android">For Android</a>
+    <a href="contact.html">Contact</a>
+  </nav>
+
+  <div class="header-actions">
+    <button id="searchToggle" class="search-toggle" aria-label="Toggle search">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+    </button>
+    <div class="menu-toggle" role="button" tabindex="0" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="primary-navigation" id="menuToggle">
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
+  </div>
+</header>
+
+<h1 class="page-title"></h1>
+
+<div class="search-container">
+  <div class="search-box">
+    <input type="text" id="searchInput" placeholder="Search products..." aria-label="Search products">
+    <button id="clearSearch" class="clear-search" aria-label="Clear search">×</button>
+  </div>
+</div>
+
+<section class="products" aria-label="Product listings">
+</section>
+
+<div class="floating-messenger">
+  <a href="https://wa.me/+8801704336936" target="_blank" rel="noopener noreferrer" class="messenger-btn">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/WhatsApp.svg/240px-WhatsApp.svg.png" alt="WhatsApp" />
+    Contact us
+  </a>
+</div>
+
+<footer class="site-footer">
+  <div class="footer-inner">
+    <a href="index.html" class="footer-brand">
+      <img src="logo.png" alt="Mr.Premium App" />
+      <span>Mr.Premium App</span>
+    </a>
+    <div class="spacer"></div>
+    <div class="footer-social" aria-label="Social links">
+      <a href="https://www.facebook.com/stationeryhouse11" target="_blank" rel="noopener noreferrer" aria-label="Facebook" class="facebook">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/c/cd/Facebook_logo_%28square%29.png" alt="Facebook Logo" />
+      </a>
+      <a href="https://wa.me/+8801704336936" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp" class="whatsapp">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/WhatsApp.svg/240px-WhatsApp.svg.png" alt="WhatsApp Logo" />
+      </a>
+    </div>
+  </div>
+  <p class="copyright">© 2025 Mr.Premium App. All rights reserved.</p>
+</footer>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="assets/js/firebase-config.js"></script>
+<script src="assets/js/script.js"></script>
+<script src="assets/js/products.js"></script>
+
+</body>
+</html>

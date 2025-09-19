@@ -1,0 +1,220 @@
+ <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Contact Us - Mr.Premium App</title>
+  <link rel="icon" href="logo.png" type="image/png" />
+  <link rel="shortcut icon" href="logo.png" type="image/png" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="stylesheet" href="assets/css/styles.css" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background: #f4f4f4;
+      color: #111;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* override-only block intentionally left minimal to preserve layout */
+
+    /* PAGE TITLE */
+    .page-title {
+      text-align: center;
+      margin: 40px 15px 20px;
+      font-size: clamp(1.5rem, 4vw, 2rem);
+      font-weight: bold;
+      color: #000;
+    }
+
+    /* CONTACT INFO */
+    .contact-container {
+      max-width: 600px;
+      margin: 0 auto 50px;
+      background: white;
+      padding: 30px 25px;
+      border-radius: 8px;
+      box-shadow: 0 3px 15px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+
+    .contact-container p {
+      font-size: 18px;
+      margin-bottom: 30px;
+      line-height: 1.5;
+    }
+
+    /* ICON LINKS */
+    .social-links {
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+    }
+
+    .social-links a {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: #000;
+      transition: background 0.3s ease;
+      cursor: pointer;
+      text-decoration: none;
+      overflow: hidden;
+      box-sizing: border-box;
+      padding: 10px;
+    }
+    .social-links a.whatsapp:hover {
+      background: #25D366;
+    }
+    .social-links a.facebook:hover {
+      background: #1877F2;
+    }
+    .social-links a.email:hover {
+      background: #EA4335;
+    }
+
+    .social-links img {
+      width: 36px;
+      height: 36px;
+      display: block;
+      object-fit: contain;
+    }
+
+    /* Service Section */
+    .location-section {
+      background: #fff;
+      padding: 25px;
+      border-radius: 8px;
+      margin: 20px 0;
+      text-align: left;
+    }
+
+    .location-details {
+      width: 100%;
+    }
+
+    .location-details h3 {
+      color: #4CAF50;
+      margin: 0 0 10px 0;
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
+
+    .location-details p {
+      margin: 5px 0;
+      color: #666;
+      font-size: 16px;
+      line-height: 1.5;
+    }
+
+    .location-details .area {
+      color: #1a73e8;
+      font-weight: 500;
+    }
+
+    .location-details .business-hours {
+      margin-top: 15px;
+      padding-top: 15px;
+      border-top: 1px solid #eee;
+      color: #4CAF50;
+    }
+    
+    .location-details .business-hours p:first-child {
+      font-size: 1.1rem;
+    }
+
+    @media (max-width: 400px) {
+      .social-links { gap: 20px; }
+      .social-links a { width: 50px; height: 50px; padding: 8px; }
+      .social-links img { width: 28px; height: 28px; }
+      .location-section {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <img src="logo.png" alt="Mr.Premium App Logo" />
+  
+  <div class="menu-toggle" role="button" tabindex="0" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="primary-navigation" id="menuToggle">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+
+  <nav id="primary-navigation" aria-label="Primary navigation">
+    <a href="index.html">Home</a>
+    <a href="products.html">Offer & Combo</a>
+    <a href="subscription.html">Subscription</a>
+    <a href="products.html?type=pc">For PC</a>
+    <a href="products.html?type=android">For Android</a>
+    <a href="contact.html" aria-current="page">Contact</a>
+  </nav>
+</header>
+
+<h1 class="page-title">Get in Touch with Us</h1>
+
+<div class="contact-container">
+  <p>We're here to help! Get in touch with us for support and updates.</p>
+  <div class="social-links">
+    <a href="https://www.facebook.com/stationeryhouse11" target="_blank" aria-label="Facebook" class="facebook" rel="noopener noreferrer">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/c/cd/Facebook_logo_%28square%29.png" alt="Facebook Logo" />
+    </a>
+    <a href="https://wa.me/+8801704336936" target="_blank" aria-label="WhatsApp" class="whatsapp" rel="noopener noreferrer">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/WhatsApp.svg/240px-WhatsApp.svg.png" alt="WhatsApp Logo" />
+    </a>
+    <a href="mailto:mrpremiumapp@gmail.com" aria-label="Email" class="email" rel="noopener noreferrer">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/7/7e/Gmail_icon_%282020%29.svg" alt="Email Icon" />
+    </a>
+  </div>
+
+  <div class="location-section">
+    <div class="location-details">
+      <h3>Online Service</h3>
+      <p class="area">Based in Uttara, Dhaka</p>
+      <p>We provide digital services to customers across Bangladesh.</p>
+      <div class="business-hours">
+        <p><strong>Service Hours:</strong></p>
+        <p>24/7 Online Service</p>
+        <p>Always ready to assist you!</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer class="site-footer">
+  <div class="footer-inner">
+    <a href="index.html" class="footer-brand">
+      <img src="logo.png" alt="Mr.Premium App" />
+      <span>Mr.Premium App</span>
+    </a>
+    <div class="spacer"></div>
+    <div class="footer-social" aria-label="Social links">
+      <a href="https://www.facebook.com/stationeryhouse11" target="_blank" rel="noopener noreferrer" aria-label="Facebook" class="facebook">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/c/cd/Facebook_logo_%28square%29.png" alt="Facebook Logo" />
+      </a>
+      <a href="https://wa.me/+8801704336936" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp" class="whatsapp">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/WhatsApp.svg/240px-WhatsApp.svg.png" alt="WhatsApp Logo" />
+      </a>
+      <a href="mailto:mrpremiumapp@gmail.com" aria-label="Email" class="email">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/7/7e/Gmail_icon_%282020%29.svg" alt="Email Icon" />
+      </a>
+    </div>
+  </div>
+  <p class="copyright">© 2025 Mr.Premium App. All rights reserved.</p>
+</footer>
+
+<script src="assets/js/script.js"></script>
+
+</body>
+</html>
