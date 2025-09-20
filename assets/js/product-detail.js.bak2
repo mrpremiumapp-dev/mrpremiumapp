@@ -1,0 +1,349 @@
+/* global firebase */
+(() => {
+  var db = firebase.firestore();
+  var productId = getProductIdFromUrl();
+  
+  var loadingEl = document.getElementById('loading');
+  var errorEl = document.getElementById('error');
+  var productDetailEl = document.getElementById('product-detail');
+  var productImageEl = document.getElementById('product-image');
+  var productNameEl = document.getElementById('product-name');
+  var productCategoryEl = document.getElementById('product-category');
+  var regularPriceEl = document.getElementById('regular-price');
+  var discountPriceEl = document.getElementById('discount-price');
+  var productDescriptionEl = document.getElementById('product-description');
+  var buyNowBtn = document.getElementById('buy-now-btn');
+  
+  function getProductIdFromUrl() {
+    var urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('id');
+  }
+  
+  async function initFirebase() {
+    return new Promise((resolve, reject) => {
+      let attempts = 0;
+      const checkFirebase = () => {
+        attempts++;
+        console.log('Checking Firebase initialization, attempt:', attempts);
+        if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
+          db = firebase.firestore();
+          resolve();
+        } else if (attempts < 20) {
+          setTimeout(checkFirebase, 250);
+        } else {
+          reject(new Error('Firebase failed to initialize'));
+        }
+      };
+      checkFirebase();
+    });
+  }
+
+  function loadProduct() {
+    console.log('Product ID from URL:', productId);
+    
+    if (!productId) {
+      showError('Product ID not found in URL. Please go back to products and try again.');
+      return;
+    }
+    
+    return db.collection('products').doc(productId).get()
+      .then(function(doc) {
+        console.log('Product document exists:', doc.exists);
+        console.log('Product document data:', doc.data());
+        
+        if (!doc.exists) {
+          showError('Product not found in database. It may have been deleted.');
+          return;
+        }
+        
+        var product = doc.data();
+        product.id = doc.id;
+        
+        console.log('Product loaded successfully:', product);
+        displayProduct(product);
+      })
+      .catch(function(error) {
+        console.error('Error loading product:', error);
+        console.error('Error code:', error.code);
+        console.error('Error message:', error.message);
+        
+        if (error.code === 'permission-denied') {
+          showError('Permission denied. Check Firestore rules.');
+        } else if (error.code === 'unavailable') {
+          showError('Database unavailable. Check your internet connection.');
+        } else {
+          showError('Failed to load product: ' + error.message);
+        }
+      });
+  }
+  
+  function displayProduct(product) {
+    // Update page title
+    document.title = product.name + ' - Mr.Premium App';
+    
+    // Update product image
+    productImageEl.src = product.imageUrl || 'https://via.placeholder.com/400x400?text=No+Image';
+    productImageEl.alt = product.name;
+    
+    // Update product info
+    productNameEl.textContent = product.name || 'Unnamed Product';
+    productCategoryEl.textContent = product.category || 'General';
+    
+    // Update prices
+    if (regularPriceEl) regularPriceEl.textContent = '৳' + (product.regularPrice || 0);
+    if (discountPriceEl) discountPriceEl.textContent = '৳' + (product.discountPrice || product.regularPrice || 0);
+    
+    // Render description with basic HTML support while keeping plain text safe
+    productDescriptionEl.innerHTML = sanitizeHtml(product.description || 'No description available.');
+    
+    // Set up buy now button
+    buyNowBtn.onclick = function() {
+      window.location.href = 'checkout.html?id=' + product.id;
+    };
+    
+    // Show product details
+    loadingEl.classList.add('hidden');
+    errorEl.classList.add('hidden');
+    productDetailEl.classList.remove('hidden');
+    
+    // Load other products
+    loadOtherProducts();
+  }
+  
+  async function loadOtherProducts() {
+    console.log('Starting to load other products...');
+    
+    const otherProductsContainer = document.getElementById('other-products');
+    if (!otherProductsContainer) {
+      console.error('Other products container not found!');
+      return;
+    }
+    
+    try {
+      otherProductsContainer.innerHTML = `
+        <div style="text-align: center; width: 100%; padding: 20px;">
+          Loading products...
+        </div>
+      `;
+      
+      console.log('Fetching products from Firebase...');
+      const querySnapshot = await db.collection('products').get();
+      console.log('Found total products:', querySnapshot.size);
+      
+      // Clear the grid and prepare for products
+      otherProductsContainer.innerHTML = '';
+      console.log('Current product ID:', productId);
+      
+      if (querySnapshot.empty) {
+        otherProductsContainer.innerHTML = '<div style="text-align: center; width: 100%; padding: 20px;">No other products found</div>';
+        return;
+      }
+      
+      let count = 0;
+        
+      const products = querySnapshot.docs.filter(doc => doc.id !== productId);
+      console.log('Products after filtering current:', products.length);
+
+      if (querySnapshot.empty || querySnapshot.size === 0) {
+        otherProductsContainer.innerHTML = `
+          <div style="text-align: center; width: 100%; padding: 20px;">
+            No other products available at this time.
+          </div>
+        `;
+        return;
+      }
+
+      // Create grid container for other products
+      const gridContainer = document.createElement('div');
+      gridContainer.className = 'other-products-grid';
+
+      // Filter and add products
+      querySnapshot.docs.forEach(doc => {
+        if (doc.id === productId) {
+          return; // Skip the current product
+        }
+
+        const otherProduct = doc.data();
+        otherProduct.id = doc.id;
+
+        const card = document.createElement('div');
+        card.className = 'other-product-card';
+        card.style.cursor = 'pointer';
+
+        // Sanitize the values to prevent XSS
+        const name = otherProduct.name ? otherProduct.name.replace(/[<>]/g, '') : 'Unnamed Product';
+        const price = otherProduct.discountPrice || otherProduct.regularPrice || 0;
+        const imageUrl = otherProduct.imageUrl || 'https://via.placeholder.com/200x200?text=No+Image';
+
+        card.innerHTML = `
+          <img src="${imageUrl}" alt="${name}" loading="lazy">
+          <h3>${name}</h3>
+          <div class="price">৳${price}</div>
+        `;
+
+        card.onclick = () => {
+          window.location.href = `product-detail.html?id=${doc.id}`;
+        };
+
+        gridContainer.appendChild(card);
+        count++;
+        console.log('Added product:', name);
+      });
+
+      // Clear container and add the grid if we have products
+      if (count > 0) {
+        otherProductsContainer.innerHTML = '';
+        otherProductsContainer.appendChild(gridContainer);
+      } else {
+        otherProductsContainer.innerHTML = `
+          <div style="text-align: center; width: 100%; padding: 20px;">
+            No other products available at this time.
+          </div>
+        `;
+      }
+      });
+
+      console.log('Successfully added', count, 'other products');
+
+      // Show message if no other products
+      if (count === 0) {
+        otherProductsContainer.innerHTML = `
+          <div style="text-align: center; width: 100%; padding: 20px;">
+            No other products available
+          </div>
+        `;
+      }
+
+    } catch (error) {
+      console.error('Error loading other products:', error);
+      otherProductsContainer.innerHTML = `
+        <div style="text-align: center; width: 100%; padding: 20px; color: #f44336;">
+          Failed to load other products: ${error.message}
+        </div>
+      `;
+    }
+  }
+  
+  function showError(message) {
+    console.error('Error:', message);
+    errorEl.textContent = message;
+    loadingEl.classList.add('hidden');
+    productDetailEl.classList.add('hidden');
+    errorEl.classList.remove('hidden');
+  }
+  
+  function sanitizeHtml(input) {
+    if (!input) return '';
+    
+    // If the content doesn't look like HTML, escape and convert newlines to <br>
+    var looksLikeHtml = /<[^>]+>/.test(input);
+    if (!looksLikeHtml) {
+      return escapeHtml(input).replace(/\n/g, '<br>');
+    }
+    
+    var template = document.createElement('template');
+    template.innerHTML = input;
+    
+    var allowedTags = new Set(['A','B','STRONG','EM','I','U','P','BR','UL','OL','LI','H1','H2','H3','H4','H5','H6','SPAN']);
+    var allowedAttrs = {
+      'A': new Set(['href','title','target','rel']),
+      'SPAN': new Set(['style'])
+    };
+    
+    function walk(node) {
+      // Remove comments
+      if (node.nodeType === Node.COMMENT_NODE) {
+        node.remove();
+        return;
+      }
+      
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        var tag = node.tagName;
+        if (!allowedTags.has(tag)) {
+          var text = document.createTextNode(node.textContent || '');
+          node.replaceWith(text);
+          return;
+        }
+        
+        var attrs = Array.from(node.attributes || []);
+        attrs.forEach(function(attr) {
+          var name = attr.name.toLowerCase();
+          var value = attr.value || '';
+          
+          // Drop event handlers and javascript: URLs
+          if (name.startsWith('on')) {
+            node.removeAttribute(attr.name);
+            return;
+          }
+          
+          if (tag === 'A') {
+            if (!allowedAttrs.A.has(attr.name)) {
+              node.removeAttribute(attr.name);
+              return;
+            }
+            if (name === 'href') {
+              var safe = value.trim();
+              if (!/^https?:\/\//i.test(safe)) {
+                node.removeAttribute(attr.name);
+                return;
+              }
+              node.setAttribute('rel', 'noopener noreferrer');
+              if (!node.getAttribute('target')) node.setAttribute('target', '_blank');
+            }
+          } else if (tag === 'SPAN') {
+            if (!allowedAttrs.SPAN.has(attr.name)) {
+              node.removeAttribute(attr.name);
+              return;
+            }
+          } else {
+            // No attributes on other tags
+            node.removeAttribute(attr.name);
+          }
+        });
+      }
+      
+      Array.from(node.childNodes || []).forEach(walk);
+    }
+    
+    Array.from(template.content.childNodes).forEach(walk);
+    return template.innerHTML;
+  }
+  
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  // Initialize when the DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        await initFirebase();
+        await loadProduct();
+      } catch (error) {
+        console.error('Failed to initialize:', error);
+        showError('Failed to load the page. Please refresh and try again.');
+      }
+    });
+  } else {
+    (async () => {
+      try {
+        await initFirebase();
+        await loadProduct();
+      } catch (error) {
+        console.error('Failed to initialize:', error);
+        showError('Failed to load the page. Please refresh and try again.');
+      }
+    })();
+  }
+
+  // Handle any unhandled promise rejections
+  window.addEventListener('unhandledrejection', function(event) {
+    console.error('Unhandled promise rejection:', event.reason);
+    showError('An unexpected error occurred. Please try refreshing the page.');
+  });
+})();

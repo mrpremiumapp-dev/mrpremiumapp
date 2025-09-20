@@ -1,0 +1,402 @@
+/* global firebase */
+(function() {
+  // Element references
+  const loadingEl = document.getElementById('loading');
+  const errorEl = document.getElementById('error');
+  const productDetailEl = document.getElementById('product-detail');
+  const productImageEl = document.getElementById('product-image');
+  const productNameEl = document.getElementById('product-name');
+  const productCategoryEl = document.getElementById('product-category');
+  const regularPriceEl = document.getElementById('regular-price');
+  const discountPriceEl = document.getElementById('discount-price');
+  const productDescriptionEl = document.getElementById('product-description');
+  const buyNowBtn = document.getElementById('buy-now-btn');
+  const otherProductsContainer = document.getElementById('other-products');
+  
+  // Firebase reference
+  let db = null;
+
+  // Helper Functions
+  function getProductIdFromUrl() {
+    var urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('id');
+  }
+  
+  function showError(message) {
+    console.error('Error:', message);
+    errorEl.textContent = message;
+    loadingEl.classList.add('hidden');
+    productDetailEl.classList.add('hidden');
+    errorEl.classList.remove('hidden');
+  }
+  
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+  
+  function sanitizeHtml(input) {
+    if (!input) return '';
+    
+    // If the content doesn't look like HTML, escape and convert newlines to <br>
+    var looksLikeHtml = /<[^>]+>/.test(input);
+    if (!looksLikeHtml) {
+      return escapeHtml(input).replace(/\n/g, '<br>');
+    }
+    
+    var template = document.createElement('template');
+    template.innerHTML = input;
+    
+    var allowedTags = new Set(['A','B','STRONG','EM','I','U','P','BR','UL','OL','LI','H1','H2','H3','H4','H5','H6','SPAN']);
+    var allowedAttrs = {
+      'A': new Set(['href','title','target','rel']),
+      'SPAN': new Set(['style'])
+    };
+    
+    function walk(node) {
+      // Remove comments
+      if (node.nodeType === Node.COMMENT_NODE) {
+        node.remove();
+        return;
+      }
+      
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        var tag = node.tagName;
+        if (!allowedTags.has(tag)) {
+          var text = document.createTextNode(node.textContent || '');
+          node.replaceWith(text);
+          return;
+        }
+        
+        var attrs = Array.from(node.attributes || []);
+        attrs.forEach(function(attr) {
+          var name = attr.name.toLowerCase();
+          var value = attr.value || '';
+          
+          // Drop event handlers and javascript: URLs
+          if (name.startsWith('on')) {
+            node.removeAttribute(attr.name);
+            return;
+          }
+          
+          if (tag === 'A') {
+            if (!allowedAttrs.A.has(attr.name)) {
+              node.removeAttribute(attr.name);
+              return;
+            }
+            if (name === 'href') {
+              var safe = value.trim();
+              if (!/^https?:\/\//i.test(safe)) {
+                node.removeAttribute(attr.name);
+                return;
+              }
+              node.setAttribute('rel', 'noopener noreferrer');
+              if (!node.getAttribute('target')) node.setAttribute('target', '_blank');
+            }
+          } else if (tag === 'SPAN') {
+            if (!allowedAttrs.SPAN.has(attr.name)) {
+              node.removeAttribute(attr.name);
+              return;
+            }
+          } else {
+            // No attributes on other tags
+            node.removeAttribute(attr.name);
+          }
+        });
+      }
+      
+      Array.from(node.childNodes || []).forEach(walk);
+    }
+    
+    Array.from(template.content.childNodes).forEach(walk);
+    return template.innerHTML;
+  }
+  
+  // Firebase initialization
+  async function initFirebase() {
+    return new Promise((resolve, reject) => {
+      let attempts = 0;
+      const checkFirebase = () => {
+        attempts++;
+        console.log('Checking Firebase initialization, attempt:', attempts);
+        if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
+          db = firebase.firestore();
+          resolve();
+        } else if (attempts < 20) {
+          setTimeout(checkFirebase, 250);
+        } else {
+          reject(new Error('Firebase failed to initialize'));
+        }
+      };
+      checkFirebase();
+    });
+  }
+  
+  // Product Loading and Display
+  async function loadProduct() {
+    const productId = getProductIdFromUrl();
+    console.log('Loading product details for ID:', productId);
+    
+    if (!productId) {
+      showError('Product ID not found in URL. Please go back to products and try again.');
+      return;
+    }
+    
+    if (!db) {
+      showError('Database not initialized. Please try refreshing the page.');
+      return;
+    }
+
+    // Show loading state
+    loadingEl.classList.remove('hidden');
+    errorEl.classList.add('hidden');
+    productDetailEl.classList.add('hidden');
+    
+    try {
+      const doc = await db.collection('products').doc(productId).get();
+      console.log('Product document exists:', doc.exists);
+      
+      if (!doc.exists) {
+        showError('Product not found in database. It may have been deleted.');
+        return;
+      }
+      
+      const product = doc.data();
+      product.id = doc.id;
+      console.log('Product loaded successfully:', product);
+      
+      displayProduct(product);
+      loadOtherProducts(productId);
+    } catch (error) {
+      console.error('Error loading product:', error);
+      
+      if (error.code === 'permission-denied') {
+        showError('Permission denied. Check Firestore rules.');
+      } else if (error.code === 'unavailable') {
+        showError('Database unavailable. Check your internet connection.');
+      } else {
+        showError('Failed to load product: ' + error.message);
+      }
+    }
+  }
+  
+  function displayProduct(product) {
+    // Update page title
+    document.title = product.name + ' - Mr.Premium App';
+    
+    // Update product image
+    productImageEl.src = product.imageUrl || 'https://via.placeholder.com/400x400?text=No+Image';
+    if (productImageEl) {
+      productImageEl.src = product.imageUrl || 'https://via.placeholder.com/400x400?text=No+Image';
+      productImageEl.alt = product.name;
+    }
+    
+    // Update product info
+    if (productNameEl) {
+      productNameEl.textContent = product.name || 'Unnamed Product';
+    }
+    
+    if (productCategoryEl) {
+      productCategoryEl.textContent = product.category || 'General';
+    }
+    
+    // Update prices
+    if (regularPriceEl) {
+      const regularPrice = product.regularPrice || 0;
+      regularPriceEl.textContent = '৳' + regularPrice.toLocaleString();
+      regularPriceEl.style.display = product.discountPrice ? 'block' : 'none';
+    }
+    
+    if (discountPriceEl) {
+      const displayPrice = product.discountPrice || product.regularPrice || 0;
+      discountPriceEl.textContent = '৳' + displayPrice.toLocaleString();
+    }
+    
+    // Update description with sanitized HTML
+    if (productDescriptionEl) {
+      productDescriptionEl.innerHTML = sanitizeHtml(product.description || 'No description available.');
+    }
+    
+    // Setup buy now button
+    if (buyNowBtn) {
+      buyNowBtn.onclick = function() {
+        window.location.href = 'checkout.html?id=' + product.id;
+      };
+    }
+    
+    // Show product details and hide loading/error states
+    if (loadingEl) loadingEl.classList.add('hidden');
+    if (errorEl) errorEl.classList.add('hidden');
+    if (productDetailEl) productDetailEl.classList.remove('hidden');
+    
+    // Load other products
+    loadOtherProducts();
+  }
+  
+    async function loadOtherProducts(currentProductId) {
+      if (!db || !otherProductsContainer) return;
+
+      try {
+        // Clear existing content
+        otherProductsContainer.innerHTML = `
+          <div class="scroll-container">
+            <div class="products-scroll"></div>
+          </div>
+        `;
+        
+        const productsScroll = otherProductsContainer.querySelector('.products-scroll');
+        if (!productsScroll) return;
+
+        const snapshot = await db.collection('products')
+          .orderBy('name')
+          .limit(10)
+          .get();
+        
+        let count = 0;
+        snapshot.forEach(doc => {
+          if (doc.id === currentProductId || count >= 10) return;
+          
+          const productData = doc.data();
+          productData.id = doc.id;
+          count++;
+
+        const productDiv = document.createElement('div');
+        productDiv.className = 'product';
+
+        // Image
+        const img = document.createElement('img');
+        img.src = productData.imageUrl || 'https://via.placeholder.com/200x200?text=No+Image';
+        img.alt = productData.name || 'Product';
+        img.loading = 'lazy';
+        img.style.cursor = 'pointer';
+        img.onclick = function() {
+          window.location.href = 'product-detail.html?id=' + productData.id;
+        };
+
+        // Title
+        const h3 = document.createElement('h3');
+        h3.textContent = productData.name || 'Unnamed Product';
+        h3.style.minHeight = '2.4em';
+
+        // Price container
+        const priceContainer = document.createElement('div');
+        priceContainer.style.minHeight = '40px';
+        priceContainer.style.display = 'flex';
+        priceContainer.style.flexDirection = 'column';
+        priceContainer.style.gap = '2px';
+        priceContainer.style.justifyContent = 'center';
+
+        // Regular price
+        const regularPrice = document.createElement('p');
+        regularPrice.className = 'regular-price';
+        regularPrice.style.textDecoration = 'line-through';
+        regularPrice.style.color = '#666';
+        regularPrice.style.margin = '0';
+        regularPrice.style.fontSize = '1.1em';
+        regularPrice.style.lineHeight = '1';
+        regularPrice.textContent = '৳' + productData.regularPrice;
+
+        // Discount price
+        const discountPrice = document.createElement('p');
+        discountPrice.className = 'discount-price';
+        discountPrice.style.color = '#4CAF50';
+        discountPrice.style.fontWeight = 'bold';
+        discountPrice.style.fontSize = '1.5em';
+        discountPrice.style.margin = '0';
+        discountPrice.style.lineHeight = '1.2';
+        discountPrice.textContent = '৳' + (productData.discountPrice || productData.regularPrice);
+
+        // Add prices to container
+        priceContainer.appendChild(regularPrice);
+        priceContainer.appendChild(discountPrice);
+
+        // Button container
+        const buttonContainer = document.createElement('div');
+        buttonContainer.className = 'button-container';
+        buttonContainer.style.display = 'flex';
+        buttonContainer.style.gap = '8px';
+        buttonContainer.style.marginTop = '4px';
+
+        // View Details button
+        const viewDetailsBtn = document.createElement('button');
+        viewDetailsBtn.textContent = 'View Details';
+        viewDetailsBtn.className = 'view-details';
+        viewDetailsBtn.style.background = '#666';
+        viewDetailsBtn.style.flex = '1';
+        viewDetailsBtn.onclick = function() {
+          window.location.href = 'product-detail.html?id=' + productData.id;
+        };
+
+        // Buy Now button
+        const buyNowBtn = document.createElement('button');
+        buyNowBtn.textContent = 'Buy Now';
+        buyNowBtn.className = 'view-details';
+        buyNowBtn.style.background = '#4CAF50';
+        buyNowBtn.style.flex = '1';
+        buyNowBtn.onclick = function() {
+          window.location.href = 'checkout.html?id=' + productData.id;
+        };
+
+        buttonContainer.appendChild(viewDetailsBtn);
+        buttonContainer.appendChild(buyNowBtn);
+        buttonContainer.style.marginBottom = '10px';
+
+        // Assemble the product card
+        productDiv.appendChild(img);
+        productDiv.appendChild(h3);
+        productDiv.appendChild(priceContainer);
+        productDiv.appendChild(buttonContainer);
+        
+        // Update page title
+        document.title = product.name + ' - Mr.Premium App';
+        
+        // Update product image
+        productImageEl.src = product.imageUrl || 'https://via.placeholder.com/400x400?text=No+Image';
+        productImageEl.alt = product.name;
+        
+        // Update product info
+        productNameEl.textContent = product.name || 'Unnamed Product';
+        productCategoryEl.textContent = product.category || 'General';
+        
+        // Update prices
+        regularPriceEl.textContent = '৳' + (product.regularPrice || 0);
+        discountPriceEl.textContent = '৳' + (product.discountPrice || product.regularPrice || 0);
+        
+        // Update description
+        productDescriptionEl.innerHTML = product.description || 'No description available.';
+        
+        // Setup buy now button
+        buyNowBtn.onclick = function() {
+          window.location.href = 'checkout.html?id=' + product.id;
+        };
+        
+        // Show the product details
+        loadingEl.classList.add('hidden');
+        errorEl.classList.add('hidden');
+        productDetailEl.classList.remove('hidden');
+      });
+    }
+  }
+
+  // Initialize when the page is ready
+  async function initAndLoad() {
+    try {
+      await initFirebase();
+      await loadProduct();
+    } catch (error) {
+      console.error('Initialization error:', error);
+      showError('Failed to initialize: ' + error.message);
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAndLoad);
+  } else {
+    initAndLoad();
+  }
+
+})();

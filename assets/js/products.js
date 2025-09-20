@@ -7,10 +7,15 @@
   }
 
   var db = firebase.firestore();
-  var productsContainer = document.querySelector('.products');
   var searchInput = document.getElementById('searchInput');
   var clearSearchBtn = document.getElementById('clearSearch');
   var allProducts = []; // Store all products for filtering
+  
+  // Get the appropriate container depending on the page
+  var productsContainer = document.querySelector('.products');
+  if (window.location.pathname.includes('product-detail.html')) {
+    productsContainer = document.getElementById('other-products');
+  }
   
   if (!productsContainer) {
     console.log('No products container found on this page');
@@ -150,9 +155,7 @@
     productDiv.appendChild(img);
     productDiv.appendChild(h3);
     productDiv.appendChild(priceContainer);
-    productDiv.appendChild(buttonContainer);
-    productDiv.appendChild(h3);
-    productDiv.appendChild(priceContainer);
+    buttonContainer.style.marginBottom = '10px'; // Add space after buttons
     productDiv.appendChild(buttonContainer);
     
     return productDiv;
@@ -176,9 +179,16 @@
     const urlParams = new URLSearchParams(window.location.search);
     const urlType = urlParams.get('type');
     
-    // Don't filter by type on index page
+    // Don't filter by type on index page or product detail page
     let productType = null;
-    if (!isIndexPage) {
+    const isProductDetailPage = window.location.pathname.includes('product-detail.html');
+    
+    // Get current product ID from URL if on product detail page
+    const currentProductId = isProductDetailPage ? 
+      new URLSearchParams(window.location.search).get('id') : 
+      null;
+      
+    if (!isIndexPage && !isProductDetailPage) {
       if (isSubscriptionPage) {
         productType = 'subscription';
       } else if (urlType === 'pc') {
@@ -200,8 +210,18 @@
           var data = doc.data();
           const isActive = data.status === 'active' || !data.status;
           
+          // Skip current product on product detail page
+          if (isProductDetailPage && doc.id === currentProductId) {
+            return false;
+          }
+          
           // On index page, show all active products regardless of type
           if (isIndexPage) {
+            return isActive;
+          }
+          
+          // On product detail page, show up to 10 active products
+          if (isProductDetailPage) {
             return isActive;
           }
           
@@ -229,8 +249,8 @@
         // Clear container
         productsContainer.innerHTML = '';
         
-        // Add each product
-        activeProducts.forEach(function(doc) {
+        // Add each product, limit to 10 for product detail page
+        activeProducts.slice(0, isProductDetailPage ? 10 : undefined).forEach(function(doc) {
           var product = doc.data();
           product.id = doc.id;
           console.log('Adding product:', product);
